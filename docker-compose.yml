@@ -1,5 +1,7 @@
 record:
     build: ./src
-    command: /go/bin/record /var/data/db-docker.sql
-    volumes:
-        - ./data:/var/data
+    command: /go/bin/record
+    links:
+        - exchanger-db
+exchanger-db:
+    image: elasticsearch:1.7.1

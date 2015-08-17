@@ -49,11 +49,12 @@ func doRequest(req *http.Request, h http.Header, v interface{}) error {
 		return err
 	}
 
-	// TODO: is it the right thing to do? How to handle 403 (like Hitbtc {"code":"NotAuthorized","message":"Wrong signature"})
-	// or 522 (like CEX maintenance)
-	if resp.StatusCode != http.StatusOK {
+	// TODO: is it the right thing to do?
+	// 403 (like Hitbtc {"code":"NotAuthorized","message":"Wrong signature"})
+	// 522 (like CEX maintenance)
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		status := http.StatusText(resp.StatusCode)
-		return fmt.Errorf("Request error: %s - %d %s\n%s", req.URL.String(), resp.StatusCode, status, respBody[:1000])
+		return fmt.Errorf("Request error: %s - %d %s\n%s", req.URL.String(), resp.StatusCode, status, respBody)
 	}
 
 	return json.Unmarshal(respBody, v)
