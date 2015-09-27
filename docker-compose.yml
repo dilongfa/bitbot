@@ -5,3 +5,5 @@ record:
         - exchanger-db
 exchanger-db:
     image: elasticsearch:1.7.1
+    volumes:
+        - ./data:/usr/share/elasticsearch/data
