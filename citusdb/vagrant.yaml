@@ -1,0 +1,31 @@
+- hosts: master
+  sudo: yes
+
+  tasks:
+    - include: install.yaml
+
+    - name: Create pg_worker_list.conf
+      copy: src=pg_worker_list.conf dest=/opt/citusdb/4.0/data/pg_worker_list.conf
+
+    - name: Update postgresql.conf
+      shell: |
+        echo "shared_preload_libraries = 'pg_shard'" >> /opt/citusdb/4.0/data/postgresql.conf;
+        echo "pg_shard.use_citusdb_select_logic = true" >> /opt/citusdb/4.0/data/postgresql.conf;
+
+    - name: Start CitusDB
+      shell: sudo -u vagrant pg_ctl -D /opt/citusdb/4.0/data -l /tmp/logfile start
+      sudo: no
+
+    - name: Create PG extension
+      shell: echo "CREATE EXTENSION pg_shard;" | psql -h localhost -d postgres
+      sudo: no
+
+- hosts: node
+  sudo: yes
+
+  tasks:
+    - include: install.yaml
+
+    - name: Start CitusDB
+      shell: sudo -u vagrant pg_ctl -D /opt/citusdb/4.0/data -l /tmp/logfile start
+      sudo: no

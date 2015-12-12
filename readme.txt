@@ -7,6 +7,16 @@ $ echo $(docker-machine ip default) localhost | sudo tee -a /etc/hosts
 $ docker-compose build
 $ docker-compose up
 
+- run dB
+$ cd citusdb
+$ vagrant up
+
+- create database
+$ psql -h localhost -p 5433 -d postgres -U vagrant -c "create database bitbot;"
+
+- create table
+$ psql -h localhost -p 5433 -d bitbot -U vagrant -f sql/201510072202-create-orderbook.sql
+
 Deployment
 ==========
 

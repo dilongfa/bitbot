@@ -1,0 +1,28 @@
+- name: Add postgres user and group first to make sure their IDs get assigned consistently
+  shell: groupadd -r postgres && useradd -r -g postgres postgres
+
+- name: Download APT packages
+  apt: name={{item}} update_cache=true
+  with_items:
+    - curl
+    - locales
+
+- name: Setup locale
+  copy: src=locale dest=/etc/default/locale
+
+- name: Instal CitusDB
+  shell: |
+    curl -o /tmp/citusdb.deb https://packages.citusdata.com/readline-6.0/citusdb-4.0.1-1.amd64.deb;
+    curl -o /tmp/citusdb-contrib.deb https://packages.citusdata.com/contrib/citusdb-contrib-4.0.1-1.amd64.deb;
+    dpkg --install /tmp/citusdb.deb;
+    dpkg --install /tmp/citusdb-contrib.deb;
+
+- name: Uncomment listen_addresses
+  shell: |
+    sed -ri "s/^#(listen_addresses\s*=\s*)\S+/\1'*'/" /opt/citusdb/4.0/data/postgresql.conf
+
+- name: PostgreSQL network conf
+  copy: src=pg_hba.conf dest=/opt/citusdb/4.0/data/pg_hba.conf
+
+- name: Symlink Postgresql bin
+  shell: ln -sf /opt/citusdb/4.0/bin/* /usr/bin

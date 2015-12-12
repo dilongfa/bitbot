@@ -1,0 +1,30 @@
+# TODO:
+# CitusDB automatic restart when the VM start (vagrant reload)
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "precise64"
+    config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+    config.vm.synced_folder ".", "/vagrant"
+
+    # configure nodes
+    (1..2).each do |i|
+        config.vm.define "node-#{i}" do |machine|
+            config.vm.hostname = "citusdb-#{i}"
+            machine.vm.provider :virtualbox do |vb| vb.name = "citusdb-#{i}" end
+            machine.vm.network :private_network, ip: "192.168.1.#{i+10}"
+        end
+    end
+
+    # configure master
+    config.vm.define "master" do |machine|
+        config.vm.hostname = "citusdb"
+        machine.vm.provider :virtualbox do |vb| vb.name = "citusdb" end
+        machine.vm.network :private_network, ip: "192.168.1.10"
+        machine.vm.network :forwarded_port, guest: 5432, host: 5433
+    end
+
+    config.vm.provision "ansible" do |ansible|
+        ansible.playbook = "vagrant.yaml"
+        ansible.groups = {"node" => ["node-1", "node-2"]}
+    end
+end
