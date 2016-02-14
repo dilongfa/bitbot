@@ -20,7 +20,7 @@ import (
 
 const (
 	staticDir  = "public"
-	timeFormat = "2006-01-02 15:04:05"
+	timeFormat = "2006-01-02 15:04"
 )
 
 var db *database.DB
@@ -89,19 +89,7 @@ func BidAskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows := []interface{}{}
-
-	for _, rec := range database.SelectRecords(db, pair, 100) {
-		for ex, ob := range rec.Orderbooks {
-			rows = append(rows, map[string]interface{}{
-				"Exchanger": ex,
-				"StartDate": rec.StartDate,
-				"Bids":      ob.Bids,
-				"Asks":      ob.Asks,
-			})
-		}
-	}
-
+	rows := database.SelectRecords(db, pair, 60)
 	JSONResponse(w, rows)
 }
 
@@ -152,7 +140,7 @@ func OpportunityHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 				opp := map[string]interface{}{
-					"Date":          rec.StartDate.Format(timeFormat),
+					"Date":          rec.StartDate, //.Format(timeFormat),
 					"Ask":           ask,
 					"BuyExchanger":  buy.Exchanger,
 					"Bid":           bid,

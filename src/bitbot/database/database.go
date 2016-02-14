@@ -19,7 +19,7 @@ type DB struct {
 }
 
 type Record struct {
-	StartDate  time.Time
+	StartDate  string
 	Orderbooks map[string]*orderbook.OrderBook
 }
 
@@ -89,7 +89,7 @@ func SelectRecords(db *DB, pair string, limit int64) []*Record {
 		}
 
 		records = append(records, &Record{
-			StartDate:  startDate,
+			StartDate:  startDate.Format("2006-01-02 15:04"),
 			Orderbooks: obs,
 		})
 	}
