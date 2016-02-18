@@ -9,9 +9,14 @@ body {
 	padding: 1em;
 }
 
-.chart:nth-child(odd) {
-	background-color: #f9f9f9;
+div.line-charts rect {
+	fill: none;
 }
+
+div.line-charts rect:nth-child(odd) {
+	fill: #f9f9f9;
+}
+
 
 .chart {
 	font-size: 10px;
@@ -30,5 +35,5 @@ body {
 
 .line {
   fill: none;
-  stroke-width: 1.75px;
+  stroke-width: 2px;
 }

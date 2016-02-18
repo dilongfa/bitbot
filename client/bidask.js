@@ -32,9 +32,9 @@ module.exports = React.createClass({
     render: function () {
         return <div>
             <h1>Bid/Ask</h1>
-            <SearchForm location={this.props.location} pair={this.props.params.pair} />
-            <LineChart data={this.state.data} />
-            { /* <Table data={this.state.data} /> */}
+            { /* <SearchForm location={this.props.location} pair={this.props.params.pair} /> */}
+            <Table data={this.state.data} />
+            {/* <LineChart data={this.state.data} /> */}
         </div>
     }
 });
@@ -70,24 +70,44 @@ var SearchForm = React.createClass({
 });
 
 var Table =  React.createClass({
-
     render: function () {
-        var rows = this.props.data.map(function (r) {
+        if (this.props.data.length == 0)
+            return <div />
+
+        var last = this.props.data[this.props.data.length - 1] || {};
+        // TODO: share this list
+        var exchangers = ['Cex', 'Kraken', 'Btce', 'Hitbtc', 'Bitfinex'];
+        var data = [];
+
+        for (var i=0; i < exchangers.length; i++) {
+            var exchanger = exchangers[i];
+            if (last.Orderbooks[exchanger]) {
+                data.push(last.Orderbooks[exchanger])
+            }
+        }
+
+        var props = this.props;
+
+        var rows = data.map(function (r, i) {
             return <tr>
-                <td>{r.StartDate}</td>
                 <td>{r.Exchanger}</td>
                 <td>{r.Bids[0].Price}</td>
                 <td>{r.Asks[0].Price}</td>
+                {(function () {
+                    if (i == 0)
+                        return <td rowSpan="5"><LineChart data={props.data} /></td>
+                }
+                )()}
             </tr>
         });
 
         return <table>
             <thead>
                 <tr>
-                    <th>Date</th>
                     <th>Exchanger</th>
                     <th>Bid</th>
                     <th>Ask</th>
+                    <th width="500px">Evol</th>
                 </tr>
             </thead>
             <tbody>
