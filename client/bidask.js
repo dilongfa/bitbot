@@ -7,7 +7,7 @@ var SelectField = require('material-ui/lib/select-field'),
 
 var pairs = require('./pairs');
 
-var LineChart = require('./line-chart');
+var CreateLineChart = require('./line-chart');
 
 module.exports = React.createClass({
     getInitialState: function () {
@@ -32,9 +32,8 @@ module.exports = React.createClass({
     render: function () {
         return <div>
             <h1>Bid/Ask</h1>
-            { /* <SearchForm location={this.props.location} pair={this.props.params.pair} /> */}
+            <SearchForm location={this.props.location} pair={this.props.params.pair} />
             <Table data={this.state.data} />
-            {/* <LineChart data={this.state.data} /> */}
         </div>
     }
 });
@@ -93,11 +92,13 @@ var Table =  React.createClass({
                 <td>{r.Exchanger}</td>
                 <td>{r.Bids[0].Price}</td>
                 <td>{r.Asks[0].Price}</td>
-                {(function () {
-                    if (i == 0)
-                        return <td rowSpan="5"><LineChart data={props.data} /></td>
-                }
-                )()}
+                <td ref={function (el) {
+                    var chart = CreateLineChart(props.data, r.Exchanger);
+                    if (el != null) {
+                        el.innerHTML = "";
+                        el.appendChild(chart);
+                    }
+                }}></td>
             </tr>
         });
 
@@ -107,7 +108,7 @@ var Table =  React.createClass({
                     <th>Exchanger</th>
                     <th>Bid</th>
                     <th>Ask</th>
-                    <th width="500px">Evol</th>
+                    <th>Evol</th>
                 </tr>
             </thead>
             <tbody>

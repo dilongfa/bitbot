@@ -1,7 +1,16 @@
+/* css reset */
 html,
 body {
 	padding: 0;
 	margin: 0;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+/* style */
+html {
 	font-family: Roboto, sans-serif;
 }
 
@@ -9,15 +18,19 @@ body {
 	padding: 1em;
 }
 
+div.line-charts svg {
+	display: table-cell; /* remove small gap */
+}
+
 div.line-charts rect {
 	fill: none;
 }
 
-div.line-charts rect:nth-child(odd) {
-	fill: #f9f9f9;
+tr:nth-child(even) {
+	background-color: #f9f9f9;
 }
 
-
+/* charts */
 .chart {
 	font-size: 10px;
 }

@@ -1,36 +1,15 @@
-var React = require('react');
+var React = require('react'),
+    ReactDOM = require('react-dom');
+
 var d3 = require('d3');
 
 var WIDTH = 600,
     HEIGHT = 100,
-    margin = {top: 20, right: 20, bottom: 30, left: 50};
+    margin = {top: 20, right: 20, bottom: 20, left: 50};
 
 var formatDate = d3.time.format("%Y-%m-%d %H:%M");
 
-// TODO: share this list
-var exchangers = ['Cex', 'Kraken', 'Btce', 'Hitbtc', 'Bitfinex'];
-
-module.exports = React.createClass({
-    componentDidMount: function() {
-        this._render(this.props);
-    },
-
-    componentWillReceiveProps: function(props, state) {
-        this._render(props);
-    },
-
-    _render: function (props) {
-        var el = this.getDOMNode();
-        el.innerHTML = "";
-        el.appendChild(createLineCharts(el, props.data));
-    },
-
-    render: function() {
-        return <div className="line-charts" />
-    }
-});
-
-function createLineCharts(el, data) {
+module.exports = function (data, exchanger) {
     var dates = [];
     for (var i=0; i < data.length; i++) {
         dates.push(formatDate.parse(data[i].StartDate));
@@ -40,24 +19,10 @@ function createLineCharts(el, data) {
 
     var svg = d3.select(svgRoot)
         .attr("width", WIDTH)
-        .attr("height", HEIGHT * exchangers.length);
+        .attr("height", HEIGHT);
 
-    for (var i = 0; i < exchangers.length; i++) {
-        var rect = document.createElementNS(d3.ns.prefix.svg, 'rect');
-
-        d3.select(rect)
-            .attr("width", WIDTH)
-            .attr("height", HEIGHT)
-            .attr("transform", "translate(0," + HEIGHT*i + ")");
-
-        svgRoot.appendChild(rect);
-    }
-
-    for (var i = 0; i < exchangers.length; i++) {
-        var g = addLineChart(dates, data, exchangers[i]);
-        d3.select(g).attr("transform", "translate(0," + HEIGHT*i + ")");
-        svgRoot.appendChild(g);
-    }
+    var g = addLineChart(dates, data, exchanger);
+    svgRoot.appendChild(g);
 
     var layer = addInteractiveLayer(dates.length, svg);
     svgRoot.appendChild(layer);
@@ -160,21 +125,21 @@ function addInteractiveLayer(n) {
     var g = document.createElementNS(d3.ns.prefix.svg, 'g');
     var innerWidth = WIDTH - margin.left - margin.right;
 
-    var wrapper = d3.select(g)
-        .attr('class', 'interactive-wrap');
+    var wrapper = d3.select(g);
 
     var line = wrapper.append('line')
         .attr('y1', 0)
-        .attr('y2', HEIGHT*5)
+        .attr('y2', HEIGHT)
         .attr('x1', margin.left)
         .attr('x2', margin.left)
         .attr('dx', 1)
         .attr('stroke', '#ccc')
-        .attr('stroke-width', 1);
+        .attr('stroke-width', 1)
+        .attr('opacity', 0);
 
     var rect = wrapper.append('rect')
         .attr('width', innerWidth)
-        .attr('height', HEIGHT*5)
+        .attr('height', HEIGHT)
         .attr('opacity', '0')
         .attr('pointer-events', 'all')
         .attr('transform', 'translate(' + margin.left + ',0)')
@@ -182,11 +147,11 @@ function addInteractiveLayer(n) {
         .on('mousemove', mousemove)
         .on('mouseout', mouseout);
 
+    var dt = innerWidth / n;
+
     function mouseover() {
         line.attr('opacity', 1);
     }
-
-    var dt = innerWidth / n;
 
     function mousemove() {
         var xy = d3.mouse(g);
