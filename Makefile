@@ -2,15 +2,15 @@ SHELL=/bin/bash
 
 export GOPATH := $(CURDIR)
 
-.PHONY: all js go
+.PHONY: all js go test
 
-all: js go
+all: go js
 
 go:
-	go install -v bitbot/cmd/...
+	go install -v services/...
 
-js: public/app.js
+js:
+	cd client && ./node_modules/webpack/bin/webpack.js
 
-public/app.js: $(shell find client -name "*.js")
-	mkdir -p ./public
-	./node_modules/.bin/browserify -t [ babelify --presets [ react ] ] client/main.js > $@
+test: go
+	go test services/...

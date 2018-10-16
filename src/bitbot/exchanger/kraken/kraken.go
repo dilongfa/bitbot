@@ -4,24 +4,39 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbot/exchanger/orderbook"
+	"bitbot/exchanger"
+	"bitbot/httpreq"
 )
 
 const (
-	APIURL        = "https://api.kraken.com/0"
+	// APIURL is the official Kraken API Endpoint
+	APIURL = "https://api.kraken.com"
+
+	// APIVersion is the official Kraken API Version Number
+	APIVersion = "0"
+
+	// "Kraken"
 	ExchangerName = "Kraken"
 )
 
-var Pairs = map[string]string{
-	"btc_eur": "XXBTZEUR",
-	"btc_usd": "XXBTZUSD",
-	"ltc_usd": "XLTCZUSD",
-	"btc_ltc": "XXBTXLTC",
+// Pairs maps standardized currency pairs to Kraken pairs as used by the API.
+var Pairs = map[exchanger.Pair]string{
+	exchanger.BTC_EUR: "XXBTZEUR",
+	exchanger.BTC_USD: "XXBTZUSD",
+	exchanger.LTC_USD: "XLTCZUSD",
+	exchanger.LTC_BTC: "XLTCXXBT",
+	exchanger.ETH_USD: "XETHZUSD",
+	exchanger.ETH_BTC: "XETHXXBT",
+	exchanger.ETC_USD: "XETCZUSD",
+	exchanger.ETC_BTC: "XETCXXBT",
+	exchanger.ZEC_BTC: "XZECXXBT",
 }
 
-func OrderBook(pair string) (*orderbook.OrderBook, error) {
-	pair = Pairs[pair]
-	url := fmt.Sprintf("%s/public/Depth?pair=%s", APIURL, pair)
+func OrderBook(pair exchanger.Pair) (*exchanger.OrderBook, error) {
+	p, ok := Pairs[pair]
+	if !ok {
+		return nil, fmt.Errorf("Kraken: OrderBook function doesn't not support %s", pair)
+	}
 
 	var result struct {
 		Error  []string
@@ -31,7 +46,8 @@ func OrderBook(pair string) (*orderbook.OrderBook, error) {
 		}
 	}
 
-	if err := orderbook.FetchOrderBook(url, &result); err != nil {
+	url := fmt.Sprintf("%s/%s/public/Depth?pair=%s", APIURL, APIVersion, p)
+	if err := httpreq.Get(url, nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -39,21 +55,21 @@ func OrderBook(pair string) (*orderbook.OrderBook, error) {
 		return nil, fmt.Errorf("Kraken returned an error. %s", result.Error[0])
 	}
 
-	asks, err := parseOrders(result.Result[pair].Asks)
+	asks, err := parseOrders(result.Result[p].Asks)
 	if err != nil {
 		return nil, err
 	}
 
-	bids, err := parseOrders(result.Result[pair].Bids)
+	bids, err := parseOrders(result.Result[p].Bids)
 	if err != nil {
 		return nil, err
 	}
 
-	return orderbook.NewOrderbook(ExchangerName, bids, asks)
+	return exchanger.NewOrderbook(ExchangerName, bids, asks)
 }
 
-func parseOrders(rows [][]interface{}) ([]*orderbook.Order, error) {
-	orders := make([]*orderbook.Order, len(rows))
+func parseOrders(rows [][]interface{}) ([]*exchanger.Order, error) {
+	orders := make([]*exchanger.Order, len(rows))
 	for i, row := range rows {
 		price, err := strconv.ParseFloat(row[0].(string), 64)
 		if err != nil {
@@ -65,7 +81,7 @@ func parseOrders(rows [][]interface{}) ([]*orderbook.Order, error) {
 			return nil, err
 		}
 
-		orders[i] = &orderbook.Order{
+		orders[i] = &exchanger.Order{
 			Price:     price,
 			Volume:    volume,
 			Timestamp: row[2].(float64),

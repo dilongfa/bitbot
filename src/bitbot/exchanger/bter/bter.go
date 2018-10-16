@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbot/exchanger/orderbook"
+	"bitbot/exchanger"
 )
 
 const (
@@ -12,14 +12,19 @@ const (
 	ExchangerName = "Bter"
 )
 
-var pairs = map[string]string{
-	"btc_usd": "BTC_USD",
-	"ltc_btc": "LTC_BTC",
+// Pairs maps standardized currency pairs to Bter pairs as used by the API.
+var Pairs = map[exchanger.Pair]string{
+	exchanger.BTC_USD: "BTC_USD",
+	exchanger.LTC_BTC: "LTC_BTC",
+	exchanger.ETH_BTC: "ETH_BTC",
+	exchanger.ETC_BTC: "ETC_BTC",
 }
 
-func OrderBook(pair string) (*orderbook.OrderBook, error) {
-	pair = pairs[pair]
-	url := fmt.Sprintf("%s/depth/%s", APIURL, pair)
+func OrderBook(pair exchanger.Pair) (*exchanger.OrderBook, error) {
+	p, ok := Pairs[pair]
+	if !ok {
+		return nil, fmt.Errorf("Bter: OrderBook function doesn't not support %s", pair)
+	}
 
 	var result struct {
 		Result string
@@ -27,7 +32,8 @@ func OrderBook(pair string) (*orderbook.OrderBook, error) {
 		Bids   [][]interface{}
 	}
 
-	err := orderbook.FetchOrderBook(url, &result)
+	url := fmt.Sprintf("%s/depth/%s", APIURL, p)
+	err := exchanger.FetchOrderBook(url, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +53,14 @@ func OrderBook(pair string) (*orderbook.OrderBook, error) {
 		return nil, err
 	}
 
-	return orderbook.NewOrderbook(ExchangerName, bids, asks)
+	// asks orders come in decreasing order
+	asks = reverseOrders(asks)
+
+	return exchanger.NewOrderbook(ExchangerName, bids, asks)
 }
 
-func parseOrders(rows [][]interface{}) ([]*orderbook.Order, error) {
-	orders := make([]*orderbook.Order, len(rows))
+func parseOrders(rows [][]interface{}) ([]*exchanger.Order, error) {
+	orders := make([]*exchanger.Order, len(rows))
 	for i, row := range rows {
 
 		price, err := parseValue(row[0])
@@ -64,7 +73,7 @@ func parseOrders(rows [][]interface{}) ([]*orderbook.Order, error) {
 			return nil, err
 		}
 
-		orders[i] = &orderbook.Order{
+		orders[i] = &exchanger.Order{
 			Price:  price,
 			Volume: volume,
 		}
@@ -85,4 +94,13 @@ func parseValue(v interface{}) (float64, error) {
 	default:
 		return 0, fmt.Errorf("Bter API error: cannot parse %s", v)
 	}
+}
+
+func reverseOrders(orders []*exchanger.Order) []*exchanger.Order {
+	n := len(orders)
+	output := make([]*exchanger.Order, n)
+	for i := 0; i < n; i++ {
+		output[i] = orders[n-1-i]
+	}
+	return output
 }

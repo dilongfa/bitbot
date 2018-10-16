@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"bitbot/exchanger/orderbook"
+	"bitbot/exchanger"
 )
 
 const (
@@ -13,29 +13,38 @@ const (
 	ExchangerName = "Bitfinex"
 )
 
-var Pairs = map[string]string{
-	"btc_usd": "BTCUSD",
-	"ltc_usd": "LTCUSD",
-	"ltc_btc": "LTCBTC",
+// Pairs maps standardized currency pairs to Bitfinex pairs as used by the API.
+var Pairs = map[exchanger.Pair]string{
+	exchanger.BTC_USD: "BTCUSD",
+	exchanger.LTC_USD: "LTCUSD",
+	exchanger.LTC_BTC: "LTCBTC",
+	exchanger.ETH_USD: "ETHUSD",
+	exchanger.ETH_BTC: "ETHBTC",
+	exchanger.ETC_USD: "ETCUSD",
+	exchanger.ETC_BTC: "ETCBTC",
+	exchanger.ZEC_BTC: "ZECBTC",
 }
 
-func OrderBook(pair string) (*orderbook.OrderBook, error) {
-	pair = Pairs[pair]
-	url := fmt.Sprintf("%s/book/%s", APIURL, pair)
+func OrderBook(pair exchanger.Pair) (*exchanger.OrderBook, error) {
+	p, ok := Pairs[pair]
+	if !ok {
+		return nil, fmt.Errorf("Bitfinex: OrderBook function doesn't not support %s", pair)
+	}
 
 	var result struct {
 		Asks orders
 		Bids orders
 	}
 
-	if err := orderbook.FetchOrderBook(url, &result); err != nil {
+	url := fmt.Sprintf("%s/book/%s", APIURL, p)
+	if err := exchanger.FetchOrderBook(url, &result); err != nil {
 		return nil, err
 	}
 
-	return orderbook.NewOrderbook(ExchangerName, result.Bids, result.Asks)
+	return exchanger.NewOrderbook(ExchangerName, result.Bids, result.Asks)
 }
 
-type orders []*orderbook.Order
+type orders []*exchanger.Order
 
 func (ko *orders) UnmarshalJSON(b []byte) error {
 	rows := []map[string]string{}
@@ -60,7 +69,7 @@ func (ko *orders) UnmarshalJSON(b []byte) error {
 			return err
 		}
 
-		*ko = append(*ko, &orderbook.Order{price, volume, timestamp})
+		*ko = append(*ko, &exchanger.Order{price, volume, timestamp})
 	}
 	return nil
 }

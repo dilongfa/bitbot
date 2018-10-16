@@ -1,36 +1,48 @@
 - hosts: all
 
   vars:
+    dev: false
+    rev: master
     project_dir: /home/bhirbec/bitbot
-    disk_dir: /media/bitbot-data
+    config: /tmp/config.json
 
   tasks:
-    # TODO: use shallow repo with depth=1?
-    - name: Clone repository
-      git: repo=https://github.com/bhirbec/bitbot.git dest={{project_dir}} accept_hostkey=yes
-      sudo: no
-
+    # BUILD GO & JS
     - name: Fetch repository
       shell: git fetch origin chdir={{project_dir}}
+      when: not dev
 
-    - name: Checkout Master branch
-      shell: git reset --hard origin/master chdir={{project_dir}}
+    - name: Checkout {{rev}} branch
+      shell: git reset --hard origin/{{rev}} chdir={{project_dir}}
+      when: not dev
+
+    - name: Install npm packages
+      npm: path={{project_dir}}/client
 
     - name: Run make
       shell: make chdir={{project_dir}}
 
-    - name: Copy record.conf
-      template: src=upstart/record.conf dest=/etc/init/record.conf
-      sudo: yes
+    # DEPLOY
+    - include_vars:
+        file: vars.yaml
 
-    - name: Restart record
-      command: service record restart
-      sudo: yes
+    - name: Copy JSON config
+      copy: src=secrets/config.json dest={{config}} # TODO: template this with vars.yaml
 
-    - name: Copy web.conf
-      template: src=upstart/web.conf dest=/etc/init/web.conf
-      sudo: yes
+    - name: Copy systemd conf
+      become: true
+      template: src=systemd/{{item}}.service dest=/etc/systemd/system/{{item}}.service
+      with_items:
+        - trader
+        - webserver
 
-    - name: Restart web service
-      command: service web restart
-      sudo: yes
+    - name: reload systemd
+      become: true
+      shell: systemctl daemon-reload
+
+    - name: Restart
+      service: name={{item}} state=restarted
+      become: true
+      with_items:
+        - trader
+        - webserver

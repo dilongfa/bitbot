@@ -3,7 +3,7 @@ package cex
 import (
 	"fmt"
 
-	"bitbot/exchanger/orderbook"
+	"bitbot/exchanger"
 )
 
 const (
@@ -11,15 +11,19 @@ const (
 	ExchangerName = "Cex"
 )
 
-var Pairs = map[string]string{
-	"btc_eur": "BTC/EUR",
-	"btc_usd": "BTC/USD",
-	"ltc_btc": "LTC/BTC",
+// Pairs maps standardized currency pairs to Cex pairs as used by the API.
+var Pairs = map[exchanger.Pair]string{
+	exchanger.BTC_EUR: "BTC/EUR",
+	exchanger.BTC_USD: "BTC/USD",
+	exchanger.LTC_BTC: "LTC/BTC",
+	exchanger.ETH_BTC: "ETH/BTC",
 }
 
-func OrderBook(pair string) (*orderbook.OrderBook, error) {
-	pair = Pairs[pair]
-	url := fmt.Sprintf("%sorder_book/%s", APIURL, pair)
+func OrderBook(pair exchanger.Pair) (*exchanger.OrderBook, error) {
+	p, ok := Pairs[pair]
+	if !ok {
+		return nil, fmt.Errorf("Cex: OrderBook function doesn't not support %s", pair)
+	}
 
 	var result struct {
 		Timestamp int64
@@ -27,7 +31,8 @@ func OrderBook(pair string) (*orderbook.OrderBook, error) {
 		Bids      [][]interface{}
 	}
 
-	if err := orderbook.FetchOrderBook(url, &result); err != nil {
+	url := fmt.Sprintf("%sorder_book/%s", APIURL, p)
+	if err := exchanger.FetchOrderBook(url, &result); err != nil {
 		return nil, err
 	}
 
@@ -41,13 +46,13 @@ func OrderBook(pair string) (*orderbook.OrderBook, error) {
 		return nil, err
 	}
 
-	return orderbook.NewOrderbook(ExchangerName, bids, asks)
+	return exchanger.NewOrderbook(ExchangerName, bids, asks)
 }
 
-func parseOrders(rows [][]interface{}) ([]*orderbook.Order, error) {
-	orders := make([]*orderbook.Order, len(rows))
+func parseOrders(rows [][]interface{}) ([]*exchanger.Order, error) {
+	orders := make([]*exchanger.Order, len(rows))
 	for i, row := range rows {
-		orders[i] = &orderbook.Order{
+		orders[i] = &exchanger.Order{
 			Price:  row[0].(float64),
 			Volume: row[1].(float64),
 		}
